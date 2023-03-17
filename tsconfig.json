@@ -6,7 +6,8 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "module": "ESNext"
+    "module": "ESNext",
+    "ignoreDeprecations": "5.0"
   },
 
   "references": [

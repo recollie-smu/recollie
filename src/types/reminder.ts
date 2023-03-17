@@ -1,4 +1,4 @@
-export interface Reminder {
+export type Reminder = {
   /** The unique identifier for the reminder. Supabase generated. */
   id: number;
   /** The name of the reminder. */
@@ -37,4 +37,4 @@ export interface Reminder {
   date_created: Date;
   /** The date and time when the reminder was last updated */
   date_updated: Date | null;
-}
+};
