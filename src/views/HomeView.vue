@@ -11,8 +11,7 @@ import dayjs from "dayjs";
 import CustomParseFormat from "dayjs/plugin/customParseFormat";
 
 import TaskList from "@/components/TaskList.vue";
-
-import defaultTaskImage from "@/assets/default_task.avif";
+import CurrentTask from "@/components/CurrentTask.vue";
 
 dayjs.extend(CustomParseFormat);
 
@@ -20,7 +19,6 @@ const reminders: Ref<Reminder[]> = ref([]);
 const socket: Ref<Socket<DefaultEventsMap, DefaultEventsMap> | null> =
   ref(null);
 const currentInput = ref("");
-const taskListener = ref();
 const currentTask: Ref<Reminder | null> = ref(null);
 const recollieMood = ref(0);
 const recollieImage = ref("");
@@ -37,7 +35,6 @@ const treats = ref(0);
 const populateReminders = async () => {
   try {
     reminders.value = await getReminders();
-    selectCurrentTask(reminders.value[0]);
   } catch (error) {
     console.log(error);
   }
@@ -46,6 +43,7 @@ const populateReminders = async () => {
 const filteredReminders = computed(() => {
   const tmpReminders: Reminder[] = [];
   const currTime = dayjs();
+
   for (const reminder of reminders.value) {
     const reminderTime = dayjs(reminder.time, "hh:mm:ss");
     if (reminderTime.isAfter(currTime)) {
@@ -53,7 +51,12 @@ const filteredReminders = computed(() => {
     }
   }
   if (tmpReminders.length > 0) {
-    selectCurrentTask(tmpReminders[0]);
+    const taskToSchedule = tmpReminders[0];
+    const timeDiff = dayjs(taskToSchedule.time, "hh:mm:ss").diff(dayjs());
+
+    useTimeoutFn(() => {
+      selectCurrentTask(taskToSchedule);
+    }, timeDiff);
   }
   return tmpReminders;
 });
@@ -115,15 +118,12 @@ const initSocket = () => {
   socket.value.on("sensor", (data: SensorInput) => {
     switch (data.inputType) {
       case 1:
-        currentInput.value = "Motion";
         getRecollieImage(0);
         break;
       case 2:
-        currentInput.value = "Swipe Right";
         getRecollieImage(1);
         break;
       case 3:
-        currentInput.value = "Swipe Left";
         getRecollieImage(2);
         break;
       default:
@@ -132,7 +132,6 @@ const initSocket = () => {
   });
 
   socket.value.on("task", (data: TaskData) => {
-    taskListener.value = data;
     if (data.status === 3) {
       stopTask.value();
       treats.value++;
@@ -170,7 +169,7 @@ const consumeTreat = () => {
 </script>
 
 <template>
-  <main class="grid grid-cols-12 h-screen p-8 gap-9">
+  <main class="grid grid-cols-12 gap-9">
     <div
       class="col-span-4 bg-white rounded-xl shadow-sm pa-3 h-full overflow-scroll"
     >
@@ -182,23 +181,9 @@ const consumeTreat = () => {
         class="bg-primary-99 h-3/5 w-full rounded-2xl text-primary-50 p-6 shadow-primary-95 shadow-sm"
         v-if="currentTask"
       >
-        <div class="flex h-full">
-          <div class="flex flex-col h-full w-1/2">
-            <p class="text-4xl font-medium mb-2">{{ currentTask.name }}</p>
-            <p class="text-xl">{{ currentTask.description }}</p>
-            <p>{{ dayjs(currentTask.time, "hh:mm:ss").format("hh:mm A") }}</p>
-          </div>
-
-          <div class="h-full w-1/2">
-            <va-image
-              v-if="currentTask.image"
-              :src="currentTask.image"
-              :ratio="1"
-            />
-            <va-image v-else :src="defaultTaskImage" :ratio="1" />
-          </div>
-        </div>
+        <current-task :task="currentTask" />
       </div>
+
       <div
         class="bg-amber-100 h-2/5 w-full rounded-2xl shadow-amber-200 shadow-sm"
       >
@@ -209,11 +194,6 @@ const consumeTreat = () => {
           fit="contain"
         />
       </div>
-      <!-- <p class="text-center">INPUT: {{ currentInput }}</p>
-      <p class="text-center">TASK LISTENER: {{ taskListener }}</p>
-      <div>
-        <va-button @click="broadcastTask"> Send </va-button>
-      </div> -->
     </div>
   </main>
 </template>
