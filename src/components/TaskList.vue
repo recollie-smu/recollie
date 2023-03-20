@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { Reminder } from "@/types/reminder";
-import { defineProps } from "vue";
 import { VaList } from "vuestic-ui/web-components";
 import dayjs from "dayjs";
 import CustomParseFormat from "dayjs/plugin/customParseFormat";
