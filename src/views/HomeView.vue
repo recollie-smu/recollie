@@ -1,55 +1,42 @@
 <script setup lang="ts">
 import type { Reminder } from "@/types/reminder";
 import type { SensorInput } from "@/types/sensor";
-import { ref, type Ref } from "vue";
-import { VaList } from "vuestic-ui/web-components";
-import { supabase } from "@/apis/supabase";
-import { io, Socket } from "socket.io-client";
-import dayjs from "dayjs";
-import type { DefaultEventsMap } from "@socket.io/component-emitter";
 import type { TaskData } from "@/types/task";
+import { getReminders } from "@/apis/reminders";
+import { onBeforeMount, ref, type Ref } from "vue";
+import { io, Socket } from "socket.io-client";
+import type { DefaultEventsMap } from "@socket.io/component-emitter";
+import dayjs from "dayjs";
+import CustomParseFormat from "dayjs/plugin/customParseFormat";
+
+import defaultTaskImage from "@/assets/default_task.avif";
+
+import TaskList from "@/components/TaskList.vue";
+
+dayjs.extend(CustomParseFormat);
+
 const reminders: Ref<Reminder[]> = ref([]);
 const socket: Ref<Socket<DefaultEventsMap, DefaultEventsMap> | null> =
   ref(null);
 const currentInput = ref("");
 const taskListener = ref();
+const currentTask: Ref<Reminder | null> = ref(null);
 
-const getReminders = async () => {
+const populateReminders = async () => {
   try {
-    const res = await supabase.from("reminders").select();
-    const resData = res.data as Reminder[];
-    const currDate = new Date();
-    const day = currDate.getDay();
-    const currTime = Date.now();
-    const currDayjsTime = dayjs();
-
-    const filteredList = resData.filter((reminder) => {
-      switch (day) {
-        case 0:
-          return reminder.sunday;
-        case 1:
-          return reminder.monday;
-        case 2:
-          return reminder.tuesday;
-        case 3:
-          return reminder.wednesday;
-        case 4:
-          return reminder.thursday;
-        case 5:
-          return reminder.friday;
-        case 6:
-          return reminder.saturday;
-        default:
-          break;
-      }
-    });
-    filteredList.sort((itemA, itemB) => {
-      return itemA.time.localeCompare(itemB.time);
-    });
-    reminders.value = filteredList;
+    reminders.value = await getReminders();
+    selectCurrentTask(reminders.value[0]);
   } catch (error) {
     console.log(error);
   }
+};
+
+const getRecollieImage = () => {
+  return new URL("/src/assets/idle_happy.gif", import.meta.url).href;
+};
+
+const selectCurrentTask = (task: Reminder) => {
+  currentTask.value = task;
 };
 
 const initSocket = () => {
@@ -73,8 +60,11 @@ const initSocket = () => {
     taskListener.value = data;
   });
 };
-initSocket();
-getReminders();
+
+onBeforeMount(() => {
+  initSocket();
+  populateReminders();
+});
 
 const broadcastTask = () => {
   socket.value?.emit("task", { taskId: 123, status: 1, location: 1 });
@@ -82,38 +72,48 @@ const broadcastTask = () => {
 </script>
 
 <template>
-  <main class="grid grid-cols-12 h-screen p-4 bg-slate-400">
-    <va-list class="col-span-4 bg-white rounded-lg">
-      <va-list-label class="text-lg bg-blue-600 rounded-t-lg mb-2">
-        <p class="text-white">Today's Schedule</p>
-      </va-list-label>
+  <main class="grid grid-cols-12 h-screen p-8 gap-9">
+    <div
+      class="col-span-4 bg-white rounded-xl shadow-md pa-3 h-full overflow-scroll"
+    >
+      <task-list :reminders="reminders" />
+    </div>
 
-      <va-list-item
-        v-for="(reminder, index) in reminders"
-        :key="index"
-        class="list__item mb-4 h-12 px-4"
+    <div class="col-span-8 flex flex-col justify-center items-center gap-6">
+      <div
+        class="bg-primary-99 h-3/5 w-full rounded-2xl text-primary-50 p-6"
+        v-if="currentTask"
       >
-        <div
-          class="bg-blue-400 rounded-lg w-full h-full flex justify-center items-center"
-        >
-          <va-list-item-section>
-            <va-list-item-label
-              class="flex justify-around items-center text-center p-2"
-            >
-              <p class="w-1/2">{{ reminder.time }}</p>
-              <p class="w-1/2">{{ reminder.name }}</p>
-            </va-list-item-label>
-          </va-list-item-section>
-        </div>
-      </va-list-item>
-    </va-list>
+        <div class="flex h-full">
+          <div class="flex flex-col h-full w-1/2">
+            <p class="text-4xl font-medium mb-2">{{ currentTask.name }}</p>
+            <p class="text-xl">{{ currentTask.description }}</p>
+            <p>{{ dayjs(currentTask.time, "hh:mm:ss").format("hh:mm A") }}</p>
+          </div>
 
-    <div class="col-span-8 flex flex-col justify-center items-center">
-      <p class="text-center">INPUT: {{ currentInput }}</p>
+          <div class="h-full w-1/2">
+            <va-image
+              v-if="currentTask.image"
+              :src="currentTask.image"
+              :ratio="1"
+            />
+            <va-image v-else :src="defaultTaskImage" :ratio="1" />
+          </div>
+        </div>
+      </div>
+      <div class="bg-amber-200 h-2/5 w-full rounded-2xl">
+        <va-image
+          class="max-h-36"
+          :src="getRecollieImage()"
+          :ratio="1"
+          fit="contain"
+        />
+      </div>
+      <!-- <p class="text-center">INPUT: {{ currentInput }}</p>
       <p class="text-center">TASK LISTENER: {{ taskListener }}</p>
       <div>
         <va-button @click="broadcastTask"> Send </va-button>
-      </div>
+      </div> -->
     </div>
   </main>
 </template>
