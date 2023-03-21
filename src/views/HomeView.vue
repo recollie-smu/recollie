@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import type { Reminder } from "@/types/reminder";
+import type { Reminder, ReminderData } from "@/types/reminder";
 import type { SensorInput } from "@/types/sensor";
 import type { TaskData } from "@/types/task";
-import { getReminders } from "@/apis/reminders";
+import {
+  getReminders,
+  lowBattNotification,
+  taskListNotification,
+  taskNotification,
+} from "@/apis/reminders";
 import { computed, onBeforeMount, onBeforeUnmount, ref, type Ref } from "vue";
 import { useTimeoutFn } from "@vueuse/core";
 import { io, Socket } from "socket.io-client";
@@ -135,6 +140,67 @@ const initSocket = () => {
     if (data.status === 3) {
       stopTask.value();
       treats.value++;
+    } else if (data.status === 4) {
+      lowBattNotification(data.taskId, data.location);
+    }
+  });
+
+  socket.value.on("reminder", (data: ReminderData) => {
+    switch (data.type) {
+      case 1: {
+        // Add new reminder
+        const inputReminderTime = dayjs(data.reminder.time, "hh:mm:ss");
+        const tmpReminderList: Reminder[] = reminders.value;
+        for (let index = 0; index < tmpReminderList.length; index++) {
+          if (index + 1 === tmpReminderList.length) {
+            // we have come to the end of the array
+            // append to the end
+            tmpReminderList.push(data.reminder);
+            break;
+          }
+          const currReminder = tmpReminderList[index];
+          const nextReminder = tmpReminderList[index + 1];
+          const currReminderTime = dayjs(currReminder.time, "hh:mm:ss");
+          const nextReminderTime = dayjs(nextReminder.time, "hh:mm:ss");
+
+          if (
+            inputReminderTime.isAfter(currReminderTime) &&
+            inputReminderTime.isAfter(nextReminderTime)
+          ) {
+            continue;
+          } else if (
+            inputReminderTime.isAfter(currReminderTime) &&
+            inputReminderTime.isBefore(nextReminderTime)
+          ) {
+            tmpReminderList.splice(index, 0, data.reminder);
+            break;
+          }
+        }
+        break;
+      }
+      case 2: {
+        // Update a reminder
+        const reminderIdx = reminders.value.findIndex((reminder) => {
+          reminder.id === data.reminderId;
+        });
+        if (reminderIdx !== -1) reminders.value[reminderIdx] = data.reminder;
+        break;
+      }
+      case 3: {
+        // Delete a reminder
+        const reminderIdx = reminders.value.findIndex((reminder) => {
+          reminder.id === data.reminderId;
+        });
+        if (reminderIdx !== -1) reminders.value.splice(reminderIdx, 1);
+        break;
+      }
+      case 4:
+        taskListNotification(data.reminderId);
+        break;
+
+      default:
+        console.warn(`Received: ${JSON.stringify(data)}`);
+        break;
     }
   });
 };

@@ -38,3 +38,10 @@ export type Reminder = {
   /** The date and time when the reminder was last updated */
   date_updated: Date | null;
 };
+
+export type ReminderData = {
+  updateId: string;
+  reminderId: number;
+  type: number;
+  reminder: Reminder;
+};
