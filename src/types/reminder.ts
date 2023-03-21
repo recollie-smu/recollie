@@ -39,6 +39,11 @@ export type Reminder = {
   date_updated: Date | null;
 };
 
+export type GameReminder = {
+  /** The completion of the reminder. -1: new, 0: overdue, 1: completed, 2: In Progress */
+  completion: number;
+} & Reminder;
+
 export type ReminderData = {
   updateId: string;
   reminderId: number;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Reminder, ReminderData } from "@/types/reminder";
+import type { Reminder, GameReminder, ReminderData } from "@/types/reminder";
 import type { SensorInput } from "@/types/sensor";
 import type { TaskData } from "@/types/task";
 import {
@@ -8,6 +8,14 @@ import {
   taskListNotification,
   taskNotification,
 } from "@/apis/reminders";
+import {
+  health,
+  takeDamage,
+  eatTreat,
+  addTreat,
+  getImage,
+  recollieImage,
+} from "@/composables/recollie";
 import { computed, onBeforeMount, onBeforeUnmount, ref, type Ref } from "vue";
 import { useTimeoutFn } from "@vueuse/core";
 import { io, Socket } from "socket.io-client";
@@ -20,26 +28,36 @@ import CurrentTask from "@/components/CurrentTask.vue";
 
 dayjs.extend(CustomParseFormat);
 
-const reminders: Ref<Reminder[]> = ref([]);
+const reminders: Ref<GameReminder[]> = ref([]);
 const socket: Ref<Socket<DefaultEventsMap, DefaultEventsMap> | null> =
   ref(null);
-const currentInput = ref("");
 const currentTask: Ref<Reminder | null> = ref(null);
-const recollieMood = ref(0);
-const recollieImage = ref("");
-const { isPending, start, stop } = useTimeoutFn(() => {
-  getRecollieImage();
-}, 3000);
 const taskStart = ref(() => {});
 const taskStop = ref(() => {});
 const taskPending = ref(false);
 const isTaskCompleted = ref(true);
 const stopTask = ref(() => {});
-const treats = ref(0);
+
+const consumeTreat = () => {
+  let remainingTasks = 0;
+  for (const reminder of reminders.value) {
+    if (reminder.completion === -1) remainingTasks++;
+  }
+  const healthValue = (100 - health.value) / remainingTasks;
+
+  eatTreat(healthValue);
+  getImage();
+};
 
 const populateReminders = async () => {
   try {
-    reminders.value = await getReminders();
+    reminders.value = [];
+    const retReminders = await getReminders();
+    for (const retReminder of retReminders) {
+      reminders.value.push({ ...retReminder, completion: 0 });
+    }
+    health.value = 100;
+    getImage();
   } catch (error) {
     console.log(error);
   }
@@ -57,7 +75,9 @@ const filteredReminders = computed(() => {
   }
   if (tmpReminders.length > 0) {
     const taskToSchedule = tmpReminders[0];
-    const timeDiff = dayjs(taskToSchedule.time, "hh:mm:ss").diff(dayjs());
+    const timeDiff = Math.abs(
+      dayjs(taskToSchedule.time, "hh:mm:ss").diff(dayjs())
+    );
 
     useTimeoutFn(() => {
       selectCurrentTask(taskToSchedule);
@@ -66,80 +86,28 @@ const filteredReminders = computed(() => {
   return tmpReminders;
 });
 
-const getRecollieImage = (motionType?: number) => {
-  let imageUrl = "/src/assets/";
-  if (motionType) {
-    switch (motionType) {
-      case 0:
-        imageUrl += "detect_happy.gif";
-        break;
-      case 1:
-        imageUrl += "eat.gif";
-        break;
-      case 2:
-        imageUrl += "pet.gif";
-        break;
-
-      default:
-        imageUrl += "detect_happy.gif";
-        break;
-    }
-    start();
-  } else {
-    switch (recollieMood.value) {
-      case 0:
-        imageUrl += "idle_happy.gif";
-        break;
-      case 1:
-        imageUrl += "idle_normal.gif";
-        break;
-      case 2:
-        imageUrl += "idle_sad.gif";
-        break;
-      default:
-        imageUrl += "idle_normal.gif";
-        break;
-    }
-  }
-  recollieImage.value = new URL(imageUrl, import.meta.url).href;
-};
-
-const selectCurrentTask = (task: Reminder) => {
-  currentTask.value = task;
-  const taskTime = dayjs(task.time, "hh:mm:ss");
-  const timeVal = taskTime.diff(dayjs());
-  const { isPending, start, stop } = useTimeoutFn(() => {
-    isTaskCompleted.value = false;
-    broadcastTask(task.id, task.location);
-  }, timeVal);
-  taskPending.value = isPending.value;
-  taskStart.value = start;
-  taskStop.value = stop;
-};
-
 const initSocket = () => {
   socket.value = io("ws://localhost:8080/web-ui");
 
   socket.value.on("sensor", (data: SensorInput) => {
-    switch (data.inputType) {
-      case 1:
-        getRecollieImage(0);
-        break;
-      case 2:
-        getRecollieImage(1);
-        break;
-      case 3:
-        getRecollieImage(2);
-        break;
-      default:
-        break;
+    if (data.inputType === 2) {
+      consumeTreat();
     }
+    getImage(data.inputType);
   });
 
   socket.value.on("task", (data: TaskData) => {
     if (data.status === 3) {
-      stopTask.value();
-      treats.value++;
+      if (data.taskId === currentTask.value?.id) {
+        stopTask.value();
+        for (const reminder of reminders.value) {
+          if (reminder.id === data.taskId) {
+            reminder.completion = 1;
+            break;
+          }
+        }
+        addTreat();
+      }
     } else if (data.status === 4) {
       lowBattNotification(data.taskId, data.location);
     }
@@ -183,7 +151,8 @@ const initSocket = () => {
         const reminderIdx = reminders.value.findIndex((reminder) => {
           reminder.id === data.reminderId;
         });
-        if (reminderIdx !== -1) reminders.value[reminderIdx] = data.reminder;
+        if (reminderIdx !== -1)
+          reminders.value[reminderIdx] = { ...data.reminder, completion: 0 };
         break;
       }
       case 3: {
@@ -202,35 +171,63 @@ const initSocket = () => {
         console.warn(`Received: ${JSON.stringify(data)}`);
         break;
     }
+    getImage();
   });
+};
+
+const getNextDaysReminders = () => {
+  const currDateTime = dayjs();
+  const nextDateTime = dayjs(currDateTime.format("DD/MM/YYYY"), "DD/MM/YYYY")
+    .add(1, "minute")
+    .add(1, "day");
+  const timeDiff = Math.abs(currDateTime.diff(nextDateTime));
+
+  useTimeoutFn(() => {
+    populateReminders();
+  }, timeDiff);
 };
 
 onBeforeMount(() => {
   initSocket();
   populateReminders();
-  getRecollieImage();
+  getNextDaysReminders();
 });
 
 onBeforeUnmount(() => {
-  if (isPending.value) {
-    stop();
+  if (taskPending.value) {
+    taskStop.value();
   }
 });
 
-const broadcastTask = (taskId: number, location: number) => {
-  socket.value?.emit("task", { taskId, status: 1, location });
+const selectCurrentTask = (task: Reminder) => {
+  if (taskPending.value) {
+    //Stop the currently running task if we are selecting a new one
+    taskStop.value();
+  }
+  currentTask.value = task;
+  const taskTime = dayjs(task.time, "hh:mm:ss");
+  const timeVal = Math.abs(taskTime.diff(dayjs()));
+  const { isPending, start, stop } = useTimeoutFn(() => {
+    isTaskCompleted.value = false;
+    broadcastTask();
+  }, timeVal);
+  taskPending.value = isPending.value;
+  taskStart.value = start;
+  taskStop.value = stop;
+};
+
+const broadcastTask = () => {
   const { start, stop } = useTimeoutFn(
     () => {
       // minus health
+      const dmgAmount = health.value / reminders.value.length;
+      takeDamage(dmgAmount);
+      getImage();
     },
     currentTask.value ? currentTask.value.duration : 300000
   );
   start();
   stopTask.value = stop;
-};
-
-const consumeTreat = () => {
-  treats.value--;
 };
 </script>
 
@@ -251,14 +248,20 @@ const consumeTreat = () => {
       </div>
 
       <div
-        class="bg-amber-100 h-2/5 w-full rounded-2xl shadow-amber-200 shadow-sm"
+        class="bg-amber-100 h-2/5 w-full rounded-2xl shadow-amber-200 shadow-sm flex justify-center items-center"
       >
+        <div class="flex items-center">
+          <va-button icon="waving_hand" color="background" size="medium" />
+        </div>
         <va-image
           class="max-h-36"
           :src="recollieImage"
           :ratio="1"
           fit="contain"
         />
+        <div class="flex items-center">
+          <va-button icon="egg_alt" color="background" size="medium" />
+        </div>
       </div>
     </div>
   </main>
