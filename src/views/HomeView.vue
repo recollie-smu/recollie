@@ -248,21 +248,28 @@ const broadcastTask = () => {
       </div>
 
       <div
-        class="bg-amber-100 h-2/5 w-full rounded-2xl shadow-amber-200 shadow-sm flex justify-center items-center"
+        class="bg-amber-100 h-2/5 w-full rounded-2xl shadow-amber-200 shadow-sm flex flex-col justify-center items-center"
       >
-        <div class="flex items-center">
-          <va-button icon="waving_hand" color="background" size="medium" />
-        </div>
         <va-image
-          class="max-h-36"
+          class="max-h-36 w-36"
           :src="recollieImage"
           :ratio="1"
           fit="contain"
         />
-        <div class="flex items-center">
-          <va-button icon="egg_alt" color="background" size="medium" />
+        <div class="flex justify-center items-center w-full">
+          <va-button-group id="onscreen-btns" class="h-8">
+            <va-button icon="waving_hand" color="white" @click="getImage(3)" />
+
+            <va-button icon="egg_alt" color="white" @click="eatTreat" />
+          </va-button-group>
         </div>
       </div>
     </div>
   </main>
 </template>
+
+<style>
+#onscreen-btns {
+  @apply flex-none !important;
+}
+</style>
