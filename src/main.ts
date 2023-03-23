@@ -1,6 +1,15 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import { createVuestic } from "vuestic-ui";
+import {
+  createVuesticEssential,
+  VaButton,
+  VaButtonGroup,
+  VaImage,
+  VaIcon,
+  VaList,
+  VaListLabel,
+  VaListItem,
+} from "vuestic-ui";
 
 import App from "./App.vue";
 import router from "./router";
@@ -13,6 +22,19 @@ const app = createApp(App);
 
 app.use(createPinia());
 app.use(router);
-app.use(createVuestic({ config }));
+app.use(
+  createVuesticEssential({
+    components: {
+      VaButton,
+      VaButtonGroup,
+      VaImage,
+      VaIcon,
+      VaList,
+      VaListLabel,
+      VaListItem,
+    },
+    config,
+  })
+);
 
 app.mount("#app");

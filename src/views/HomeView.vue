@@ -91,10 +91,16 @@ const initSocket = () => {
   socket.value = io("ws://localhost:8080/web-ui");
 
   socket.value.on("sensor", (data: SensorInput) => {
-    if (data.inputType === 2) {
-      consumeTreat();
+    if (isTaskCompleted.value) {
+      if (data.inputType === 2) {
+        if (numTreats.value > 0) {
+          consumeTreat();
+          getImage(data.inputType);
+        }
+      } else {
+        getImage(data.inputType);
+      }
     }
-    getImage(data.inputType);
   });
 
   socket.value.on("task", async (data: TaskData) => {
@@ -170,7 +176,7 @@ const initSocket = () => {
         break;
       }
       case 4:
-        await taskListNotification(data.reminderId, reminders.value);
+        await taskListNotification(reminders.value);
         break;
 
       default:
@@ -283,7 +289,7 @@ onBeforeUnmount(() => {
             <va-button
               icon="waving_hand"
               color="white"
-              @click="getImage(2)"
+              @click="getImage(3)"
               :disabled="!isTaskCompleted"
             />
 

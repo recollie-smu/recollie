@@ -3,6 +3,7 @@ import ky from "ky";
 
 const telegramToken = import.meta.env.VITE_TELEGRAM_TOKEN;
 const telegramChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+const taskLocations = ["Bedroom", "Kitchen", "Study Room", "Bathroom"];
 
 export const getReminders = async () => {
   try {
@@ -24,10 +25,10 @@ export const taskNotification = async (
   let telePayload = "";
   switch (type) {
     case 2:
-      telePayload = `\u2757 Task ${taskName} (${taskLocation}) is overdue.`;
+      telePayload = `\u2757 Task ${taskName} (${taskLocations[taskLocation]}) is overdue.`;
       break;
     case 3:
-      telePayload = `\u2705 Task ${taskName} (${taskLocation}) is completed.`;
+      telePayload = `\u2705 Task ${taskName} (${taskLocations[taskLocation]}) is completed.`;
       break;
     default:
       return;
@@ -46,20 +47,22 @@ export const taskNotification = async (
     });
 };
 
-export const taskListNotification = async (
-  chatId: number,
-  reminders: GameReminder[]
-) => {
+export const taskListNotification = async (reminders: GameReminder[]) => {
   let telePayload = "";
+  let overdueCounter = 0;
+  let completedCounter = 0;
+
   for (const gameReminder of reminders) {
     switch (gameReminder.completion) {
       case -1:
         telePayload += `\u2b50 Task ${gameReminder.name} has not begun \n`;
         break;
       case 0:
+        overdueCounter++;
         telePayload += `\u274c Task ${gameReminder.name} is overdue \n`;
         break;
       case 1:
+        completedCounter++;
         telePayload += `\u2714 Task ${gameReminder.name} is completed \n`;
         break;
       case 2:
@@ -69,12 +72,15 @@ export const taskListNotification = async (
       default:
         break;
     }
-    telePayload += ``;
   }
+
+  let finalPayload = `${completedCounter}/${reminders.length} task(s) completed \u2714 \n There are ${overdueCounter} task(s) overdue! \u274c \n`;
+  finalPayload += "\n\n===========================\n\n";
+  finalPayload += telePayload;
   ky.post(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
     json: {
       chat_id: telegramChatId,
-      text: telePayload,
+      text: finalPayload,
     },
   })
     .then(() => {
@@ -86,7 +92,7 @@ export const taskListNotification = async (
 };
 
 export const lowBattNotification = async (location: number) => {
-  const telePayload = `Device at location ${location} has low battery! Please replace it soon!`;
+  const telePayload = `Device at location ${taskLocations[location]} has low battery! Please replace it soon!`;
   ky.post(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
     json: {
       chat_id: telegramChatId,

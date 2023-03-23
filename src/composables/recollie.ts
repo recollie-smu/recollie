@@ -15,7 +15,7 @@ const detectSadImg = new URL("/src/assets/detect_sad.gif", import.meta.url)
   .href;
 
 const eatImg = new URL("/src/assets/eat.gif", import.meta.url).href;
-const petImg = new URL("/src/assets/eat.gif", import.meta.url).href;
+const petImg = new URL("/src/assets/pet.gif", import.meta.url).href;
 
 const recollieImage = ref(idleHappyImg);
 
@@ -26,6 +26,7 @@ const takeDamage = (dmg: number) => {
 const eatTreat = (dmg: number) => {
   numTreats.value -= 1;
   health.value += dmg;
+  getImage(2);
 };
 
 const addTreat = () => (numTreats.value += 1);
@@ -34,17 +35,17 @@ const getImage = (motionType?: number) => {
   let imageUrl = "";
   if (motionType) {
     switch (motionType) {
-      case 0:
+      case 1:
         if (health.value >= 75) {
           imageUrl += detectHappyImg;
         } else {
           imageUrl += detectSadImg;
         }
         break;
-      case 1:
+      case 2:
         imageUrl += eatImg;
         break;
-      case 2:
+      case 3:
         imageUrl += petImg;
         break;
       default:
