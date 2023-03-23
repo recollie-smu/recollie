@@ -1,5 +1,8 @@
-import type { Reminder } from "@/types/reminder";
+import type { GameReminder, Reminder } from "@/types/reminder";
 import ky from "ky";
+
+const telegramToken = import.meta.env.VITE_TELEGRAM_TOKEN;
+const telegramChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
 export const getReminders = async () => {
   try {
@@ -13,59 +16,87 @@ export const getReminders = async () => {
   return [];
 };
 
-export const taskNotification = async (type: number, chatId: number) => {
-  // let telePayload = "";
-  //      switch (taskPayload.status) {
-  //          case 2:
-  //              telePayload = `\u2757 Task ${taskPayload.taskId} (${taskPayload.location}) is overdue.`;
-  //              break;
-  //          case 3:
-  //              telePayload = `\u2705 Task ${taskPayload.taskId} (${taskPayload.location}) is completed.`;
-  //              break;
-  //          default:
-  //              return
-  //      }
-  //      axios.post(`https://api.telegram.org/bot${teleCreds.token}/sendMessage`,
-  //      {
-  //          'chat_id': teleCreds.chatId,
-  //          'text': telePayload
-  //      })
-  //      .then(() => {
-  //          console.log('Message sent');
-  //      }).catch((error) => {
-  //          console.log(error);
-  //      });
+export const taskNotification = async (
+  type: number,
+  taskName: string,
+  taskLocation: number
+) => {
+  let telePayload = "";
+  switch (type) {
+    case 2:
+      telePayload = `\u2757 Task ${taskName} (${taskLocation}) is overdue.`;
+      break;
+    case 3:
+      telePayload = `\u2705 Task ${taskName} (${taskLocation}) is completed.`;
+      break;
+    default:
+      return;
+  }
+  ky.post(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+    json: {
+      chat_id: telegramChatId,
+      text: telePayload,
+    },
+  })
+    .then(() => {
+      console.log("Message sent");
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+};
 
-}
+export const taskListNotification = async (
+  chatId: number,
+  reminders: GameReminder[]
+) => {
+  let telePayload = "";
+  for (const gameReminder of reminders) {
+    switch (gameReminder.completion) {
+      case -1:
+        telePayload += `\u2b50 Task ${gameReminder.name} has not begun \n`;
+        break;
+      case 0:
+        telePayload += `\u274c Task ${gameReminder.name} is overdue \n`;
+        break;
+      case 1:
+        telePayload += `\u2714 Task ${gameReminder.name} is completed \n`;
+        break;
+      case 2:
+        telePayload += `\u2755 Task ${gameReminder.name} is in progress \n`;
+        break;
 
-export const taskListNotification = async (chatId: number) => {
-  // let telePayload = "";
+      default:
+        break;
+    }
+    telePayload += ``;
+  }
+  ky.post(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+    json: {
+      chat_id: telegramChatId,
+      text: telePayload,
+    },
+  })
+    .then(() => {
+      console.log("Message sent");
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+};
 
-  //      axios.post(`https://api.telegram.org/bot${teleCreds.token}/sendMessage`,
-  //      {
-  //          'chat_id': teleCreds.chatId,
-  //          'text': telePayload
-  //      })
-  //      .then(() => {
-  //          console.log('Message sent');
-  //      }).catch((error) => {
-  //          console.log(error);
-  //      });
-
-}
-
-export const lowBattNotification = async (chatId: number, location: number) => {
-  // let telePayload = "";
-
-  //      axios.post(`https://api.telegram.org/bot${teleCreds.token}/sendMessage`,
-  //      {
-  //          'chat_id': teleCreds.chatId,
-  //          'text': telePayload
-  //      })
-  //      .then(() => {
-  //          console.log('Message sent');
-  //      }).catch((error) => {
-  //          console.log(error);
-  //      });
-
-}
+export const lowBattNotification = async (location: number) => {
+  const telePayload = `Device at location ${location} has low battery! Please replace it soon!`;
+  ky.post(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+    json: {
+      chat_id: telegramChatId,
+      text: telePayload,
+    },
+  })
+    .then(() => {
+      console.log("Message sent");
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+};

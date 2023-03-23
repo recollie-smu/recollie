@@ -97,9 +97,14 @@ const initSocket = () => {
     getImage(data.inputType);
   });
 
-  socket.value.on("task", (data: TaskData) => {
+  socket.value.on("task", async (data: TaskData) => {
     if (data.status === 3) {
       if (data.taskId === currentTask.value?.id) {
+        await taskNotification(
+          3,
+          currentTask.value.name,
+          currentTask.value.location
+        );
         stopTask.value();
         for (const reminder of reminders.value) {
           if (reminder.id === data.taskId) {
@@ -110,11 +115,11 @@ const initSocket = () => {
         addTreat();
       }
     } else if (data.status === 4) {
-      lowBattNotification(data.taskId, data.location);
+      await lowBattNotification(data.location);
     }
   });
 
-  socket.value.on("reminder", (data: ReminderData) => {
+  socket.value.on("reminder", async (data: ReminderData) => {
     switch (data.type) {
       case 1: {
         // Add new reminder
@@ -165,7 +170,7 @@ const initSocket = () => {
         break;
       }
       case 4:
-        taskListNotification(data.reminderId);
+        await taskListNotification(data.reminderId, reminders.value);
         break;
 
       default:
@@ -208,7 +213,7 @@ const selectCurrentTask = (task: GameReminder) => {
 
 const broadcastTask = () => {
   const { start, stop } = useTimeoutFn(
-    () => {
+    async () => {
       // minus health
       const dmgAmount = health.value / reminders.value.length;
       if (currentTask.value) {
@@ -218,6 +223,12 @@ const broadcastTask = () => {
         if (currentTaskIdx !== -1) {
           reminders.value[currentTaskIdx].completion = 0;
         }
+
+        await taskNotification(
+          2,
+          currentTask.value.name,
+          currentTask.value.location
+        );
       }
       takeDamage(dmgAmount);
       getImage();
