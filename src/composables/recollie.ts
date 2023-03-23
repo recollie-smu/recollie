@@ -55,4 +55,12 @@ const getImage = (motionType?: number) => {
   recollieImage.value = new URL(imageUrl, import.meta.url).href;
 };
 
-export { health, takeDamage, eatTreat, addTreat, getImage, recollieImage };
+export {
+  health,
+  numTreats,
+  takeDamage,
+  eatTreat,
+  addTreat,
+  getImage,
+  recollieImage,
+};

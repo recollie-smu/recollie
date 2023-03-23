@@ -10,6 +10,7 @@ import {
 } from "@/apis/reminders";
 import {
   health,
+  numTreats,
   takeDamage,
   eatTreat,
   addTreat,
@@ -31,7 +32,7 @@ dayjs.extend(CustomParseFormat);
 const reminders: Ref<GameReminder[]> = ref([]);
 const socket: Ref<Socket<DefaultEventsMap, DefaultEventsMap> | null> =
   ref(null);
-const currentTask: Ref<Reminder | null> = ref(null);
+const currentTask: Ref<GameReminder | null> = ref(null);
 const taskStart = ref(() => {});
 const taskStop = ref(() => {});
 const taskPending = ref(false);
@@ -64,7 +65,7 @@ const populateReminders = async () => {
 };
 
 const filteredReminders = computed(() => {
-  const tmpReminders: Reminder[] = [];
+  const tmpReminders: GameReminder[] = [];
   const currTime = dayjs();
 
   for (const reminder of reminders.value) {
@@ -184,22 +185,11 @@ const getNextDaysReminders = () => {
 
   useTimeoutFn(() => {
     populateReminders();
+    getNextDaysReminders();
   }, timeDiff);
 };
 
-onBeforeMount(() => {
-  initSocket();
-  populateReminders();
-  getNextDaysReminders();
-});
-
-onBeforeUnmount(() => {
-  if (taskPending.value) {
-    taskStop.value();
-  }
-});
-
-const selectCurrentTask = (task: Reminder) => {
+const selectCurrentTask = (task: GameReminder) => {
   if (taskPending.value) {
     //Stop the currently running task if we are selecting a new one
     taskStop.value();
@@ -221,14 +211,35 @@ const broadcastTask = () => {
     () => {
       // minus health
       const dmgAmount = health.value / reminders.value.length;
+      if (currentTask.value) {
+        const currentTaskIdx = reminders.value.findIndex((val) => {
+          return val.id === currentTask.value?.id;
+        });
+        if (currentTaskIdx !== -1) {
+          reminders.value[currentTaskIdx].completion = 0;
+        }
+      }
       takeDamage(dmgAmount);
       getImage();
+      isTaskCompleted.value = true;
     },
     currentTask.value ? currentTask.value.duration : 300000
   );
   start();
   stopTask.value = stop;
 };
+
+onBeforeMount(() => {
+  initSocket();
+  populateReminders();
+  getNextDaysReminders();
+});
+
+onBeforeUnmount(() => {
+  if (taskPending.value) {
+    taskStop.value();
+  }
+});
 </script>
 
 <template>
@@ -242,7 +253,7 @@ const broadcastTask = () => {
     <div class="col-span-8 flex flex-col justify-center items-center gap-6">
       <div
         class="bg-primary-99 h-3/5 w-full rounded-2xl text-primary-50 p-6 shadow-primary-95 shadow-sm"
-        v-if="currentTask"
+        v-if="currentTask && isTaskCompleted === false"
       >
         <current-task :task="currentTask" />
       </div>
@@ -258,9 +269,19 @@ const broadcastTask = () => {
         />
         <div class="flex justify-center items-center w-full">
           <va-button-group id="onscreen-btns" class="h-8">
-            <va-button icon="waving_hand" color="white" @click="getImage(3)" />
+            <va-button
+              icon="waving_hand"
+              color="white"
+              @click="getImage(2)"
+              :disabled="!isTaskCompleted"
+            />
 
-            <va-button icon="egg_alt" color="white" @click="eatTreat" />
+            <va-button
+              icon="egg_alt"
+              color="white"
+              @click="eatTreat"
+              :disabled="!isTaskCompleted || numTreats === 0"
+            />
           </va-button-group>
         </div>
       </div>
