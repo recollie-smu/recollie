@@ -3,9 +3,21 @@ import { ref } from "vue";
 
 const health = ref(100);
 const numTreats = ref(0);
-const recollieImage = ref(
-  new URL("/src/assets/idle_happy.gif", import.meta.url).href
-);
+const idleHappyImg = new URL("/src/assets/idle_happy.gif", import.meta.url)
+  .href;
+const idleNormalImg = new URL("/src/assets/idle_normal.gif", import.meta.url)
+  .href;
+const idleSadImg = new URL("/src/assets/idle_sad.gif", import.meta.url).href;
+
+const detectHappyImg = new URL("/src/assets/detect_happy.gif", import.meta.url)
+  .href;
+const detectSadImg = new URL("/src/assets/detect_sad.gif", import.meta.url)
+  .href;
+
+const eatImg = new URL("/src/assets/eat.gif", import.meta.url).href;
+const petImg = new URL("/src/assets/eat.gif", import.meta.url).href;
+
+const recollieImage = ref(idleHappyImg);
 
 const takeDamage = (dmg: number) => {
   health.value -= dmg;
@@ -19,24 +31,24 @@ const eatTreat = (dmg: number) => {
 const addTreat = () => (numTreats.value += 1);
 
 const getImage = (motionType?: number) => {
-  let imageUrl = "/src/assets/";
+  let imageUrl = "";
   if (motionType) {
     switch (motionType) {
       case 0:
         if (health.value >= 75) {
-          imageUrl += "detect_happy.gif";
+          imageUrl += detectHappyImg;
         } else {
-          imageUrl += "detect_sad.gif";
+          imageUrl += detectSadImg;
         }
         break;
       case 1:
-        imageUrl += "eat.gif";
+        imageUrl += eatImg;
         break;
       case 2:
-        imageUrl += "pet.gif";
+        imageUrl += petImg;
         break;
       default:
-        imageUrl += "detect_happy.gif";
+        imageUrl += detectHappyImg;
         break;
     }
     const { isPending, start, stop } = useTimeoutFn(() => {
@@ -45,14 +57,14 @@ const getImage = (motionType?: number) => {
     start();
   } else {
     if (health.value >= 75) {
-      imageUrl += "idle_happy.gif";
+      imageUrl += idleHappyImg;
     } else if (health.value >= 25) {
-      imageUrl += "idle_normal.gif";
+      imageUrl += idleNormalImg;
     } else {
-      imageUrl += "idle_sad.gif";
+      imageUrl += idleSadImg;
     }
   }
-  recollieImage.value = new URL(imageUrl, import.meta.url).href;
+  recollieImage.value = imageUrl;
 };
 
 export {
