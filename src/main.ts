@@ -9,6 +9,7 @@ import {
   VaList,
   VaListLabel,
   VaListItem,
+  VaProgressBar,
 } from "vuestic-ui";
 
 import App from "./App.vue";
@@ -32,6 +33,7 @@ app.use(
       VaList,
       VaListLabel,
       VaListItem,
+      VaProgressBar,
     },
     config,
   })

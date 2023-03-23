@@ -29,6 +29,14 @@ import CurrentTask from "@/components/CurrentTask.vue";
 
 dayjs.extend(CustomParseFormat);
 
+const backgroundLongUrl = new URL(
+  "/src/assets/background_long.jpg",
+  import.meta.url
+).href;
+const backgroundShortUrl = new URL(
+  "/src/assets/background_short.jpg",
+  import.meta.url
+).href;
 const reminders: Ref<GameReminder[]> = ref([]);
 const socket: Ref<Socket<DefaultEventsMap, DefaultEventsMap> | null> =
   ref(null);
@@ -38,6 +46,7 @@ const taskStop = ref(() => {});
 const taskPending = ref(false);
 const isTaskCompleted = ref(true);
 const stopTask = ref(() => {});
+const selectedBackground = ref(backgroundLongUrl);
 
 const consumeTreat = () => {
   let remainingTasks = 0;
@@ -82,6 +91,13 @@ const filteredReminders = computed(() => {
 
     useTimeoutFn(() => {
       selectCurrentTask(taskToSchedule);
+      if (socket.value) {
+        socket.value.emit("task", {
+          taskId: taskToSchedule.id,
+          status: 1,
+          location: taskToSchedule.location,
+        });
+      }
     }, timeDiff);
   }
   return tmpReminders;
@@ -106,6 +122,7 @@ const initSocket = () => {
   socket.value.on("task", async (data: TaskData) => {
     if (data.status === 3) {
       if (data.taskId === currentTask.value?.id) {
+        isTaskCompleted.value = true;
         await taskNotification(
           3,
           currentTask.value.name,
@@ -119,6 +136,8 @@ const initSocket = () => {
           }
         }
         addTreat();
+        currentTask.value = null;
+        selectedBackground.value = backgroundLongUrl;
       }
     } else if (data.status === 4) {
       await lowBattNotification(data.location);
@@ -206,7 +225,8 @@ const selectCurrentTask = (task: GameReminder) => {
     taskStop.value();
   }
   currentTask.value = task;
-  const taskTime = dayjs(task.time, "hh:mm:ss");
+  selectedBackground.value = backgroundShortUrl;
+  const taskTime = dayjs(task.time, "HH:mm:ss");
   const timeVal = Math.abs(taskTime.diff(dayjs()));
   const { isPending, start, stop } = useTimeoutFn(() => {
     isTaskCompleted.value = false;
@@ -218,7 +238,7 @@ const selectCurrentTask = (task: GameReminder) => {
 };
 
 const broadcastTask = () => {
-  const { start, stop } = useTimeoutFn(
+  const { stop } = useTimeoutFn(
     async () => {
       // minus health
       const dmgAmount = health.value / reminders.value.length;
@@ -235,14 +255,20 @@ const broadcastTask = () => {
           currentTask.value.name,
           currentTask.value.location
         );
+
+        if (socket.value) {
+          socket.value.emit("task", {
+            taskId: currentTask.value?.id,
+            status: 2,
+            location: currentTask.value?.location,
+          });
+        }
       }
       takeDamage(dmgAmount);
       getImage();
-      isTaskCompleted.value = true;
     },
     currentTask.value ? currentTask.value.duration : 300000
   );
-  start();
   stopTask.value = stop;
 };
 
@@ -276,8 +302,14 @@ onBeforeUnmount(() => {
       </div>
 
       <div
+        :style="{ backgroundImage: `url(${selectedBackground})` }"
         class="bg-amber-100 h-2/5 w-full rounded-2xl shadow-amber-200 shadow-sm flex flex-col justify-center items-center"
       >
+        <va-progress-bar
+          class="m-2 px-2"
+          color="success"
+          :model-value="health"
+        />
         <va-image
           class="max-h-36 w-36"
           :src="recollieImage"
