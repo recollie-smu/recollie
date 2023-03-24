@@ -20,12 +20,14 @@ const petImg = new URL("/src/assets/pet.gif", import.meta.url).href;
 const recollieImage = ref(idleHappyImg);
 
 const takeDamage = (dmg: number) => {
-  health.value -= dmg;
+  if (health.value > 0 && health.value - dmg > 0) {
+    health.value -= Math.round(dmg);
+  }
 };
 
-const eatTreat = (dmg: number) => {
+const eatTreat = () => {
   numTreats.value -= 1;
-  health.value += dmg;
+  health.value = 100;
   getImage(2);
 };
 

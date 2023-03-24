@@ -18,7 +18,7 @@ import {
   recollieImage,
 } from "@/composables/recollie";
 import { computed, onBeforeMount, onBeforeUnmount, ref, type Ref } from "vue";
-import { useTimeoutFn } from "@vueuse/core";
+import { useTimeoutFn, useIntervalFn } from "@vueuse/core";
 import { io, Socket } from "socket.io-client";
 import type { DefaultEventsMap } from "@socket.io/component-emitter";
 import dayjs from "dayjs";
@@ -46,6 +46,8 @@ const taskStop = ref(() => {});
 const taskPending = ref(false);
 const isTaskCompleted = ref(true);
 const stopTask = ref(() => {});
+const stopTaskInterval = ref();
+const isTaskIntervalActive = ref(false);
 const selectedBackground = ref(backgroundLongUrl);
 const petAudio = new Audio(
   new URL("/src/assets/pet.mp3", import.meta.url).href
@@ -58,13 +60,7 @@ const sadAudio = new Audio(
 );
 
 const consumeTreat = () => {
-  let remainingTasks = 0;
-  for (const reminder of reminders.value) {
-    if (reminder.completion === -1) remainingTasks++;
-  }
-  const healthValue = (100 - health.value) / remainingTasks;
-
-  eatTreat(healthValue);
+  eatTreat();
   getImage();
 };
 
@@ -147,6 +143,7 @@ const initSocket = () => {
             break;
           }
         }
+        stopTaskInterval.value();
         addTreat();
         currentTask.value = null;
         selectedBackground.value = backgroundLongUrl;
@@ -242,19 +239,19 @@ const selectCurrentTask = (task: GameReminder) => {
   const timeVal = Math.abs(taskTime.diff(dayjs()));
   const { isPending, start, stop } = useTimeoutFn(() => {
     isTaskCompleted.value = false;
-    broadcastTask();
+    broadcastTask(task);
   }, timeVal);
   taskPending.value = isPending.value;
   taskStart.value = start;
   taskStop.value = stop;
 };
 
-const broadcastTask = () => {
+const broadcastTask = (task: GameReminder) => {
   const { stop } = useTimeoutFn(
     async () => {
       // minus health
-      const dmgAmount = health.value / reminders.value.length;
       if (currentTask.value) {
+        stopTaskInterval.value();
         const currentTaskIdx = reminders.value.findIndex((val) => {
           return val.id === currentTask.value?.id;
         });
@@ -276,12 +273,19 @@ const broadcastTask = () => {
           });
         }
       }
-      takeDamage(dmgAmount);
       sadAudio.play();
       getImage();
     },
     currentTask.value ? currentTask.value.duration : 300000
   );
+
+  const dmgPerTick = 80 / (task.duration / 10000);
+  const { pause, isActive } = useIntervalFn(() => {
+    takeDamage(dmgPerTick);
+    getImage();
+  }, 10000);
+  stopTaskInterval.value = pause;
+  isTaskIntervalActive.value = isActive.value;
   stopTask.value = stop;
 };
 
@@ -326,7 +330,10 @@ onBeforeUnmount(() => {
         <va-progress-bar
           class="m-2 px-2"
           color="success"
+          :size="24"
           :model-value="health"
+          content-inside
+          show-percent
         />
         <va-image
           class="max-h-36 w-36"
@@ -334,7 +341,10 @@ onBeforeUnmount(() => {
           :ratio="1"
           fit="contain"
         />
-        <div class="flex justify-center items-center w-full">
+        <div
+          class="flex justify-center items-center w-full"
+          v-if="isTaskCompleted"
+        >
           <va-button-group id="onscreen-btns" class="h-8">
             <va-button
               icon="waving_hand"
