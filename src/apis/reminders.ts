@@ -25,10 +25,14 @@ export const taskNotification = async (
   let telePayload = "";
   switch (type) {
     case 2:
-      telePayload = `\u2757 Task ${taskName} (${taskLocations[taskLocation]}) is overdue.`;
+      telePayload = `\u2757 Task ${taskName} (${
+        taskLocations[taskLocation - 1]
+      }) is overdue.`;
       break;
     case 3:
-      telePayload = `\u2705 Task ${taskName} (${taskLocations[taskLocation]}) is completed.`;
+      telePayload = `\u2705 Task ${taskName} (${
+        taskLocations[taskLocation - 1]
+      }) is completed.`;
       break;
     default:
       return;

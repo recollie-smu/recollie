@@ -53,10 +53,10 @@ const petAudio = new Audio(
   new URL("/src/assets/pet.mp3", import.meta.url).href
 );
 const happyAudio = new Audio(
-  new URL("/src/assets/pet.mp3", import.meta.url).href
+  new URL("/src/assets/happy.mp3", import.meta.url).href
 );
 const sadAudio = new Audio(
-  new URL("/src/assets/pet.mp3", import.meta.url).href
+  new URL("/src/assets/sad.mp3", import.meta.url).href
 );
 
 const consumeTreat = () => {
