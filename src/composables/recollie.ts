@@ -45,9 +45,10 @@ const getImage = (motionType?: number) => {
       case 2:
         imageUrl += eatImg;
         break;
-      case 3:
+      case 3: {
         imageUrl += petImg;
         break;
+      }
       default:
         imageUrl += detectHappyImg;
         break;

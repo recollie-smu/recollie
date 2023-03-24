@@ -47,6 +47,15 @@ const taskPending = ref(false);
 const isTaskCompleted = ref(true);
 const stopTask = ref(() => {});
 const selectedBackground = ref(backgroundLongUrl);
+const petAudio = new Audio(
+  new URL("/src/assets/pet.mp3", import.meta.url).href
+);
+const happyAudio = new Audio(
+  new URL("/src/assets/pet.mp3", import.meta.url).href
+);
+const sadAudio = new Audio(
+  new URL("/src/assets/pet.mp3", import.meta.url).href
+);
 
 const consumeTreat = () => {
   let remainingTasks = 0;
@@ -115,6 +124,9 @@ const initSocket = () => {
         }
       } else {
         getImage(data.inputType);
+      }
+      if (data.inputType === 1) {
+        happyAudio.play();
       }
     }
   });
@@ -265,11 +277,17 @@ const broadcastTask = () => {
         }
       }
       takeDamage(dmgAmount);
+      sadAudio.play();
       getImage();
     },
     currentTask.value ? currentTask.value.duration : 300000
   );
   stopTask.value = stop;
+};
+
+const pet = async () => {
+  getImage(3);
+  await petAudio.play();
 };
 
 onBeforeMount(() => {
@@ -321,7 +339,7 @@ onBeforeUnmount(() => {
             <va-button
               icon="waving_hand"
               color="white"
-              @click="getImage(3)"
+              @click="pet"
               :disabled="!isTaskCompleted"
             />
 
