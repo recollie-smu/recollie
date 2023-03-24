@@ -3,7 +3,7 @@ import ky from "ky";
 
 const telegramToken = import.meta.env.VITE_TELEGRAM_TOKEN;
 const telegramChatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-const taskLocations = ["Bedroom", "Kitchen", "Study Room", "Bathroom"];
+const taskLocations = ["Bathroom", "Bedroom", "Kitchen", "Living Room"];
 
 export const getReminders = async () => {
   try {
