@@ -158,6 +158,7 @@ const initSocket = () => {
       case 1: {
         // Add new reminder
         const inputReminderTime = dayjs(data.reminder.time, "hh:mm:ss");
+        const tmpReminder: GameReminder = { ...data.reminder, completion: -1 };
         const tmpReminderList: Reminder[] = reminders.value;
         for (let index = 0; index < tmpReminderList.length; index++) {
           if (index + 1 === tmpReminderList.length) {
@@ -171,6 +172,10 @@ const initSocket = () => {
           const currReminderTime = dayjs(currReminder.time, "hh:mm:ss");
           const nextReminderTime = dayjs(nextReminder.time, "hh:mm:ss");
 
+          if (index === 0 && inputReminderTime.isBefore(currReminderTime)) {
+            tmpReminderList.unshift(tmpReminder);
+            break;
+          }
           if (
             inputReminderTime.isAfter(currReminderTime) &&
             inputReminderTime.isAfter(nextReminderTime)
@@ -180,7 +185,7 @@ const initSocket = () => {
             inputReminderTime.isAfter(currReminderTime) &&
             inputReminderTime.isBefore(nextReminderTime)
           ) {
-            tmpReminderList.splice(index, 0, data.reminder);
+            tmpReminderList.splice(index, 0, tmpReminder);
             break;
           }
         }
