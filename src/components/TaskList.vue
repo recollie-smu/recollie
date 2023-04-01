@@ -14,7 +14,7 @@ const props = defineProps<{ reminders: Reminder[] }>();
       class="font-medium text-left rounded-t-xl mb-4 inline-flex items-center gap-2"
     >
       <va-icon name="event" color="black" />
-      <p class="text-neutral-10">Upcoming</p>
+      <p class="text-neutral-10 text-lg">Upcoming</p>
     </va-list-label>
 
     <va-list-item

@@ -343,7 +343,7 @@ onBeforeUnmount(() => {
         <va-progress-bar
           class="m-2 px-2"
           :color="healthBarColour"
-          :size="24"
+          :size="28"
           :model-value="health"
           content-inside
           show-percent
@@ -364,6 +364,7 @@ onBeforeUnmount(() => {
               color="white"
               @click="pet"
               :disabled="!isTaskCompleted"
+              size="large"
             />
 
             <va-button
@@ -371,6 +372,7 @@ onBeforeUnmount(() => {
               color="white"
               @click="eatTreat"
               :disabled="!isTaskCompleted || numTreats === 0"
+              size="large"
             />
           </va-button-group>
         </div>
