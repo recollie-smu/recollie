@@ -69,7 +69,7 @@ const populateReminders = async () => {
     reminders.value = [];
     const retReminders = await getReminders();
     for (const retReminder of retReminders) {
-      reminders.value.push({ ...retReminder, completion: 0 });
+      reminders.value.push({ ...retReminder, completion: -1 });
     }
     health.value = 100;
     getImage();
@@ -84,7 +84,7 @@ const filteredReminders = computed(() => {
 
   for (const reminder of reminders.value) {
     const reminderTime = dayjs(reminder.time, "hh:mm:ss");
-    if (reminderTime.isAfter(currTime)) {
+    if (reminderTime.isAfter(currTime) && reminder.completion !== 1) {
       tmpReminders.push(reminder);
     }
   }
