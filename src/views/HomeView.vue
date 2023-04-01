@@ -285,6 +285,7 @@ const broadcastTask = (task: GameReminder) => {
   );
 
   const dmgPerTick = 80 / (task.duration / 10000);
+  takeDamage(dmgPerTick);
   const { pause, isActive } = useIntervalFn(() => {
     takeDamage(dmgPerTick);
     getImage();
@@ -299,6 +300,13 @@ const pet = async () => {
   await petAudio.play();
 };
 
+const healthBarColour = computed(() => {
+  if (health.value > 25) {
+    return "success";
+  } else {
+    return "danger";
+  }
+});
 onBeforeMount(() => {
   initSocket();
   populateReminders();
@@ -334,7 +342,7 @@ onBeforeUnmount(() => {
       >
         <va-progress-bar
           class="m-2 px-2"
-          color="success"
+          :color="healthBarColour"
           :size="24"
           :model-value="health"
           content-inside

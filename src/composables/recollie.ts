@@ -62,7 +62,7 @@ const getImage = (motionType?: number) => {
   } else {
     if (health.value >= 75) {
       imageUrl += idleHappyImg;
-    } else if (health.value >= 25) {
+    } else if (health.value >= 30) {
       imageUrl += idleNormalImg;
     } else {
       imageUrl += idleSadImg;
