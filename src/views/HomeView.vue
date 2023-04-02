@@ -284,7 +284,7 @@ const broadcastTask = (task: GameReminder) => {
     currentTask.value ? currentTask.value.duration : 300000
   );
 
-  const dmgPerTick = 80 / (task.duration / 10000);
+  const dmgPerTick = 100 / (task.duration / 10000);
   takeDamage(dmgPerTick);
   const { pause, isActive } = useIntervalFn(() => {
     takeDamage(dmgPerTick);

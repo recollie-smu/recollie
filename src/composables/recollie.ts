@@ -22,6 +22,8 @@ const recollieImage = ref(idleHappyImg);
 const takeDamage = (dmg: number) => {
   if (health.value > 0 && health.value - dmg > 0) {
     health.value -= Math.round(dmg);
+  } else {
+    health.value = 0;
   }
 };
 
