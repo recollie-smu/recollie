@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Reminder } from "@/types/reminder";
 import dayjs from "dayjs";
-import defaultTaskImage from "@/assets/default_task.avif";
+import defaultTaskImage from "@/assets/fallback.png";
 
 const props = defineProps<{ task: Reminder }>();
 </script>
