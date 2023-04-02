@@ -2,8 +2,16 @@
 import type { Reminder } from "@/types/reminder";
 import dayjs from "dayjs";
 import defaultTaskImage from "@/assets/fallback.png";
+import { onMounted, ref } from "vue";
 
 const props = defineProps<{ task: Reminder }>();
+const audio = ref<HTMLAudioElement>();
+onMounted(() => {
+  if (props.task.memo && props.task.memo !== "") {
+    audio.value = new Audio(props.task.memo);
+    audio.value.play();
+  }
+});
 </script>
 <template>
   <div class="flex h-full">
